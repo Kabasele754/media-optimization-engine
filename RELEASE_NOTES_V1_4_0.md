@@ -1,8 +1,8 @@
-# Media Optimization Engine 1.4.0rc1
+# Media Optimization Engine 1.4.0rc2
 
 ## Auto Integration & Publishing Edition
 
-Version 1.4.0rc1 makes the package easier to install in unrelated Django projects and removes the need for manual processing commands in the normal upload path.
+Version 1.4.0rc2 makes the package easier to install in unrelated Django projects and removes the need for manual processing commands in the normal upload path.
 
 ### Automatic runtime mode
 
@@ -30,7 +30,7 @@ Optional whole-project ImageField discovery is available through `MEDIA_ENGINE_A
 
 ### Packaging
 
-- Author/Maintainer: Achilles Kabasele
+- Author/Maintainer: Achille Kabasele
 - Email: pepexykabasele@gmail.com
 - License: MIT
 - CLI: `media-engine-doctor`
