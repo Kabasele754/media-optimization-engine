@@ -1,4 +1,4 @@
-__version__ = '1.4.0rc1'
+__version__ = '1.4.0rc2'
 
 def register_model_image(*args, **kwargs):
     from .registry import register_model_image as _register
