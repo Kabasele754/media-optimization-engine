@@ -53,7 +53,7 @@ paths:
                 profile:
                   type: string
                   default: default
-                  enum: [default, avatar, card, hero, panorama.preview, panorama.multires]
+                  enum: [default, avatar, card, hero, panorama.preview, panorama.multires, panorama.marzipano, panorama.cube]
                 owner_ref:
                   type: string
                 media_kind:
