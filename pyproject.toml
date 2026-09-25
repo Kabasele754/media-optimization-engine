@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "media-optimization-engine"
+version = "1.4.0"
+description = "Extensible Django media optimization engine with responsive images, multiresolution 360 panorama tiling including Marzipano cube pyramids, autonomous nodes, integration diagnostics, Redis/Celery, CDN-ready storage, and Flutter/viewer adapters."
+requires-python = ">=3.11"
+authors = [{ name = "Achille Kabaseli", email = "pepexykabasele@gmail.com" }]
+maintainers = [{ name = "Achille Kabaseli", email = "pepexykabasele@gmail.com" }]
+readme = "README.md"
+keywords = ["django", "media", "image-optimization", "avif", "webp", "panorama", "360", "marzipano", "cdn", "cloudflare-r2"]
+license = "MIT"
+
+dependencies = [
+  "Django>=5.2,<6.1",
+  "djangorestframework>=3.15,<4",
+  "Pillow>=11,<13",
+  "pillow-avif-plugin>=1.5,<2",
+  "numpy>=2,<3",
+  "blurhash>=1.1,<2",
+]
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Framework :: Django",
+  "Framework :: Django :: 5.2",
+  "Framework :: Django :: 6.0",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+  "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+]
+
+[project.urls]
+Homepage = "https://github.com/Kabasele754/media-optimization-engine"
+Repository = "https://github.com/Kabasele754/media-optimization-engine"
+Issues = "https://github.com/Kabasele754/media-optimization-engine/issues"
+Documentation = "https://github.com/Kabasele754/media-optimization-engine/tree/master/docs"
+
+[project.scripts]
+media-engine-doctor = "media_engine.doctor:main"
+
+[project.optional-dependencies]
+celery = ["celery>=5.4,<6", "redis>=5,<7"]
+postgres = ["psycopg[binary]>=3.2,<4"]
+s3 = ["boto3>=1.35,<2", "django-storages[s3]>=1.14,<2"]
+r2 = ["boto3>=1.35,<2", "django-storages[s3]>=1.14,<2"]
+observability = ["prometheus-client>=0.21,<1"]
+all = [
+  "celery>=5.4,<6",
+  "redis>=5,<7",
+  "psycopg[binary]>=3.2,<4",
+  "boto3>=1.35,<2",
+  "django-storages[s3]>=1.14,<2",
+  "prometheus-client>=0.21,<1",
+]
+
+[tool.setuptools.packages.find]
+include = ["media_engine*", "config*"]
+
+[tool.setuptools.package-data]
+media_engine = ["spec/*.yaml", "adapters/flutter/*.dart", "adapters/flutter/*.md"]
+
+[tool.ruff]
+line-length = 100
