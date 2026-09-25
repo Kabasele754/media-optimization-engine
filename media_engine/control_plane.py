@@ -218,7 +218,7 @@ def sync_from_control_plane(force=False) -> dict:
     url = f'{base_url}/api/v1/media-engine/config/?{query}'
     headers = {
         'Accept': 'application/json',
-        'User-Agent': f'MediaOptimizationEngine/{getattr(settings, "MEDIA_ENGINE_VERSION", "1.3.0")}',
+        'User-Agent': f'MediaOptimizationEngine/{getattr(settings, "MEDIA_ENGINE_VERSION", "1.4.0")}',
     }
     token = getattr(settings, 'MEDIA_ENGINE_CONTROL_PLANE_TOKEN', '')
     if token:
