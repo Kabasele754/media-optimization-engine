@@ -1,8 +1,8 @@
-# Media Optimization Engine 1.4.0rc2
+# Media Optimization Engine 1.4.0rc3
 
 ## Auto Integration & Publishing Edition
 
-Version 1.4.0rc2 makes the package easier to install in unrelated Django projects and removes the need for manual processing commands in the normal upload path.
+Version 1.4.0rc3 makes the package easier to install in unrelated Django projects and removes the need for manual processing commands in the normal upload path.
 
 ### Automatic runtime mode
 
