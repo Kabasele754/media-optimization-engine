@@ -62,10 +62,10 @@ all = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["media_engine*", "config*"]
+include = ["media_engine*"]
 
 [tool.setuptools.package-data]
-media_engine = ["spec/*.yaml", "adapters/flutter/*.dart", "adapters/flutter/*.md"]
+media_engine = ["spec/*.yaml", "adapters/flutter/*.dart", "adapters/flutter/*.md", "static/media_engine/*.js"]
 
 [tool.ruff]
 line-length = 100
