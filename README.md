@@ -89,4 +89,4 @@ The Ziarama Hub is optional. Processing, storage, Redis, Celery and media delive
 
 ## License
 
-MIT License. Copyright (c) 2026 Achilles Kabasele.
+MIT License. Copyright (c) 2026 Achille Kabasele.
