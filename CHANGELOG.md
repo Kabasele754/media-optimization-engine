@@ -1,13 +1,13 @@
 # Changelog
 
-## 1.4.0 - 2026-09-25
+## 1.4.0rc1 - 2026-09-25
 - Added automatic host-field registration through `MEDIA_ENGINE_AUTO_FIELDS`.
 - Added optional ImageField discovery for controlled migrations.
 - Added `MEDIA_ENGINE_TASK_MODE=auto`: eager in DEBUG, Celery in production.
 - Prevented unchanged bindings from triggering unnecessary regeneration.
 - Added `media-engine-doctor` console entrypoint.
 - Added TestPyPI/PyPI Trusted Publishing workflows and machine-readable integration context YAML.
-- Updated package metadata for Achille Kabaseli and MIT licensing.
+- Updated package metadata for Achilles Kabasele and MIT licensing.
 
 ## 1.3.2
 - Added Marzipano-compatible multiresolution cubemap panorama pipeline.
