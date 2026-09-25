@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "media-optimization-engine"
-version = "1.4.0rc1"
+version = "1.4.0rc2"
 description = "Extensible Django media optimization engine with responsive images, multiresolution 360 panorama tiling including Marzipano cube pyramids, autonomous nodes, integration diagnostics, Redis/Celery, CDN-ready storage, and Flutter/viewer adapters."
 requires-python = ">=3.11"
-authors = [{ name = "Achilles Kabasele", email = "pepexykabasele@gmail.com" }]
-maintainers = [{ name = "Achilles Kabasele", email = "pepexykabasele@gmail.com" }]
+authors = [{ name = "Achille Kabasele", email = "pepexykabasele@gmail.com" }]
+maintainers = [{ name = "Achille Kabasele", email = "pepexykabasele@gmail.com" }]
 readme = "README.md"
 keywords = ["django", "media", "image-optimization", "avif", "webp", "panorama", "360", "marzipano", "cdn", "cloudflare-r2"]
 license = "MIT"
