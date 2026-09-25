@@ -1,0 +1,56 @@
+schema_version: 1
+package:
+  distribution_name: media-optimization-engine
+  import_name: media_engine
+  version: 1.4.0
+  author:
+    name: Achille Kabaseli
+    email: pepexykabasele@gmail.com
+  license: MIT
+
+purpose:
+  summary: >-
+    Extensible media optimization infrastructure for Django projects and
+    standalone nodes. It preserves originals and creates optimized derivatives.
+  runtime_dependency_on_ziarama_hub: false
+
+installation_modes:
+  embedded_django:
+    install: pip install media-optimization-engine
+    installed_apps: media_engine
+    migrations_required: true
+  standalone_node:
+    migrations_required: true
+    api_available: true
+  remote_client:
+    migrations_required_in_client: false
+
+execution:
+  task_mode_default: auto
+  auto_behavior:
+    debug_true: eager
+    debug_false: celery
+  local_requires_docker: false
+  local_requires_redis: false
+  local_requires_celery_worker: false
+
+integration:
+  automatic_fields_setting: MEDIA_ENGINE_AUTO_FIELDS
+  optional_imagefield_discovery_setting: MEDIA_ENGINE_AUTO_DISCOVER_IMAGE_FIELDS
+  recommended_discovery_default: false
+
+media:
+  standard_images:
+    formats: [avif, webp, jpeg]
+    responsive: true
+  panorama_360:
+    equirectangular: true
+    multiresolution: true
+    cube_multires: true
+    marzipano: true
+    default_tile_size: 512
+
+storage:
+  supported: [local, s3-compatible, cloudflare-r2]
+  originals_are_source_of_truth: true
+  derivatives_must_never_be_recompressed_as_source: true
