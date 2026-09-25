@@ -11,7 +11,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         payload = {
-            'version': getattr(settings, 'MEDIA_ENGINE_VERSION', '1.3.0'),
+            'version': getattr(settings, 'MEDIA_ENGINE_VERSION', '1.4.0'),
             'pipeline_version': getattr(settings, 'MEDIA_ENGINE_PIPELINE_VERSION', 1),
             'node': get_node_identity().as_dict(),
             'require_api_key': getattr(settings, 'MEDIA_ENGINE_REQUIRE_API_KEY', False),
