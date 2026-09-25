@@ -1,0 +1,61 @@
+name: Bug report
+description: Report a reproducible Media Optimization Engine problem
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a problem. Do not include passwords, API keys, private media, or production secrets.
+  - type: input
+    id: version
+    attributes:
+      label: Media Optimization Engine version
+      placeholder: "1.4.0"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12"
+    validations:
+      required: true
+  - type: input
+    id: django
+    attributes:
+      label: Django version
+      placeholder: "5.2"
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Execution mode
+      options:
+        - eager/local
+        - Celery
+        - standalone service
+        - other
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: shell
