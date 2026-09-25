@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "media-optimization-engine"
-version = "1.4.0"
+version = "1.4.0rc1"
 description = "Extensible Django media optimization engine with responsive images, multiresolution 360 panorama tiling including Marzipano cube pyramids, autonomous nodes, integration diagnostics, Redis/Celery, CDN-ready storage, and Flutter/viewer adapters."
 requires-python = ">=3.11"
 authors = [{ name = "Achilles Kabasele", email = "pepexykabasele@gmail.com" }]
