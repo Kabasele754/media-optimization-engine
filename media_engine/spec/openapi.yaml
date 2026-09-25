@@ -1,0 +1,191 @@
+openapi: 3.1.0
+info:
+  title: Media Optimization Engine API
+  version: 1.3.0
+  description: >-
+    Autonomous per-node media optimization API. Normal image processing and delivery
+    do not depend on the optional Ziarama control plane.
+servers:
+  - url: /
+paths:
+  /.well-known/media-optimization-engine.json:
+    get:
+      summary: Discover the engine and its machine-readable endpoints.
+      responses:
+        '200':
+          description: Discovery document.
+  /api/v1/system/capabilities/:
+    get:
+      summary: Node formats, profiles and supported features.
+      responses:
+        '200':
+          description: Capability document.
+  /api/v1/system/health/:
+    get:
+      summary: Local node health. Control-plane failures do not make local runtime unhealthy.
+      responses:
+        '200':
+          description: Healthy or locally degraded node.
+        '503':
+          description: A local core dependency is unhealthy.
+  /api/v1/system/version/:
+    get:
+      summary: Engine, pipeline and node version metadata.
+      responses:
+        '200':
+          description: Version document.
+  /api/v1/images/:
+    post:
+      summary: Upload an original image and enqueue responsive optimization.
+      security:
+        - bearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                profile:
+                  type: string
+                  default: default
+                  enum: [default, avatar, card, hero, panorama.preview, panorama.multires]
+                owner_ref:
+                  type: string
+                media_kind:
+                  type: string
+                  enum: [image, panorama]
+                projection:
+                  type: string
+                  enum: [equirectangular, cubemap]
+                focal_x:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                focal_y:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+      responses:
+        '200':
+          description: Existing deduplicated asset.
+        '201':
+          description: New asset accepted.
+        '400':
+          description: Invalid upload.
+        '403':
+          description: Invalid/missing API key when authentication is required.
+  /api/v1/images/{id}/:
+    get:
+      summary: Retrieve asset metadata and manifest.
+      security:
+        - bearerApiKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+        - in: query
+          name: profile
+          schema: {type: string, default: default}
+      responses:
+        '200': {description: Asset metadata.}
+        '404': {description: Asset not found.}
+    patch:
+      summary: Update focal coordinates.
+      security:
+        - bearerApiKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                focal_x: {type: number, minimum: 0, maximum: 1}
+                focal_y: {type: number, minimum: 0, maximum: 1}
+      responses:
+        '200': {description: Updated asset.}
+  /api/v1/images/{id}/manifest/:
+    get:
+      summary: Retrieve immutable responsive derivative manifest.
+      security:
+        - bearerApiKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+        - in: query
+          name: profile
+          schema: {type: string, default: default}
+      responses:
+        '200': {description: Responsive manifest.}
+  /api/v1/images/{id}/regenerate/:
+    post:
+      summary: Enqueue a forced regeneration for a profile.
+      security:
+        - bearerApiKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        '202': {description: Regeneration queued.}
+  /api/v1/images/{id}/render/:
+    get:
+      summary: Fallback on-demand derivative generation and redirect.
+      security:
+        - bearerApiKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+        - in: query
+          name: profile
+          schema: {type: string, default: default}
+        - in: query
+          name: width
+          schema: {type: integer, default: 640}
+        - in: query
+          name: format
+          schema: {type: string, default: avif, enum: [avif, webp, jpeg]}
+      responses:
+        '302': {description: Redirect to immutable derivative.}
+        '202': {description: Generation already in progress.}
+  /api/v1/images/{id}/panorama/:
+    get:
+      summary: Get a 360 panorama multiresolution manifest
+      security:
+        - bearerApiKey: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: {type: string, format: uuid}
+        - in: query
+          name: adapter
+          required: false
+          schema:
+            type: string
+            enum: [generic, pannellum, marzipano, threejs]
+      responses:
+        '200':
+          description: Panorama manifest
+
+components:
+  securitySchemes:
+    bearerApiKey:
+      type: http
+      scheme: bearer
+      bearerFormat: APIKey
