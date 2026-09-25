@@ -1,6 +1,7 @@
 # Changelog
 
-## 1.4.0rc2 - 2026-09-25
+## 1.4.0rc3 - 2026-09-25
+- Broadened runtime compatibility for existing Django 4.2.30 / DRF 3.14 / Pillow 10.3 projects while keeping Django 5.2+ support.
 - Added automatic host-field registration through `MEDIA_ENGINE_AUTO_FIELDS`.
 - Added optional ImageField discovery for controlled migrations.
 - Added `MEDIA_ENGINE_TASK_MODE=auto`: eager in DEBUG, Celery in production.
