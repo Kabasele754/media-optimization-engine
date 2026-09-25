@@ -1,0 +1,13 @@
+{
+  "name": "Media Optimization Engine",
+  "version": "1.3.2",
+  "architecture": "distributed-autonomous-nodes",
+  "control_plane_runtime_required": false,
+  "discovery_path": "/.well-known/media-optimization-engine.json",
+  "openapi_path": "/api/v1/system/openapi.yaml",
+  "health_path": "/api/v1/system/health/",
+  "capabilities_path": "/api/v1/system/capabilities/",
+  "agent_instructions": "AGENTS.md",
+  "tenant_onboarding": "docs/TENANT_ONBOARDING.md",
+  "failure_model": "docs/FAILOVER.md"
+}
