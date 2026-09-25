@@ -13,7 +13,7 @@ from .runtime_config import effective_profiles
 
 
 def _version():
-    return getattr(settings, 'MEDIA_ENGINE_VERSION', '1.3.0')
+    return getattr(settings, 'MEDIA_ENGINE_VERSION', '1.4.0')
 
 
 @require_GET
