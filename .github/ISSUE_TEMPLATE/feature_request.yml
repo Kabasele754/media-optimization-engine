@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement to Media Optimization Engine
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Describe the problem or workflow this feature should address.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility considerations
+      description: Note any Django, storage, Celery, CDN, panorama viewer, or migration implications.
