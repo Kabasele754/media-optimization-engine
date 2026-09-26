@@ -3,6 +3,7 @@ package:
   distribution_name: media-optimization-engine
   import_name: media_engine
   version: 1.4.0
+  public_name: Media Optimization Engineer
   author:
     name: Achille Kabaseli
     email: pepexykabasele@gmail.com
@@ -12,7 +13,7 @@ purpose:
   summary: >-
     Extensible media optimization infrastructure for Django projects and
     standalone nodes. It preserves originals and creates optimized derivatives.
-  runtime_dependency_on_ziarama_hub: false
+  runtime_dependency_on_external_control_plane: false
 
 installation_modes:
   embedded_django:
@@ -38,11 +39,16 @@ integration:
   automatic_fields_setting: MEDIA_ENGINE_AUTO_FIELDS
   optional_imagefield_discovery_setting: MEDIA_ENGINE_AUTO_DISCOVER_IMAGE_FIELDS
   recommended_discovery_default: false
+  django_template_library: responsive_media
+  preferred_model_field_tag: media_image
+  direct_asset_tag: responsive_image
+  single_url_tag: media_url
 
 media:
   standard_images:
     formats: [avif, webp, jpeg]
     responsive: true
+    browser_native_selection: true
   panorama_360:
     equirectangular: true
     multiresolution: true
