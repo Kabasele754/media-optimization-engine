@@ -26,9 +26,10 @@ class _Manager:
 
 
 class BackfillRegisteredMediaTests(TestCase):
+    @patch("media_engine.management.commands.backfill_registered_media.connection")
     @patch("media_engine.management.commands.backfill_registered_media.entries")
     @patch("media_engine.management.commands.backfill_registered_media.ingest_model_field")
-    def test_invalid_image_does_not_abort_backfill(self, ingest, entries):
+    def test_invalid_image_does_not_abort_backfill(self, ingest, entries, connection):
         model = SimpleNamespace(
             _default_manager=_Manager([
                 SimpleNamespace(pk=1),
@@ -36,6 +37,7 @@ class BackfillRegisteredMediaTests(TestCase):
             ]),
             _meta=SimpleNamespace(label="demo.Photo", db_table="demo_photo"),
         )
+        connection.introspection.table_names.return_value = ["demo_photo"]
         entries.return_value = [
             SimpleNamespace(
                 model=model,
