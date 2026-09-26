@@ -80,6 +80,14 @@ python manage.py audit_media_engine --fail-on-incomplete
 {% responsive_image binding.asset profile=binding.profile role=binding.role alt=object.name %}
 ```
 
+When replacing an existing `<img>` with MOE, keep its presentation contract on the nested image. Pass the old CSS classes through `css_class`, and pass inline geometry/crop rules through `style`. Use `picture_class` only for wrapper-specific styling:
+
+```django
+{% responsive_image binding.asset profile=binding.profile css_class="tenant-logo" picture_class="media-picture tenant-logo" style="object-fit:contain" %}
+```
+
+The `<picture>` element selects the optimized file; the nested `<img>` remains the replaced element that owns dimensions, object-fit, border radius, transforms, and other image presentation rules. Host applications with legacy direct-child selectors such as `.card > img` should bridge them to `.card > picture > img` during migration rather than dropping the original design.
+
 Only the true hero/LCP image should be eager. Non-critical content remains lazy.
 
 ## Flutter / mobile
