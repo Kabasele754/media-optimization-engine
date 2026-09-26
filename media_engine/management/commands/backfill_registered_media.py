@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
+from django.db import connection
 from media_engine.integration import ingest_model_field
 from media_engine.registry import entries
 
@@ -21,7 +22,20 @@ class Command(BaseCommand):
         failed = 0
         failures = []
 
+        available_tables = set(connection.introspection.table_names())
+
         for entry in entries():
+            table_name = entry.model._meta.db_table
+            if table_name not in available_tables:
+                skipped += 1
+                self.stdout.write(
+                    self.style.WARNING(
+                        f'SKIP {entry.model._meta.label}.{entry.field_name}: '
+                        f'table {table_name} is not available in the current database/schema'
+                    )
+                )
+                continue
+
             qs = entry.model._default_manager.all()
             if options['limit']:
                 qs = qs[:options['limit']]
