@@ -243,6 +243,29 @@ Declare realistic sizes in the Django tag:
 
 Runtime JavaScript measurement should be reserved for components whose dimensions cannot be expressed reliably with sizes, such as resizable editors or dynamically mounted canvases.
 
+### Optional adaptive runtime
+
+MOE ships an opt-in adaptive helper for those dynamic layouts.
+
+Load it with Django static files:
+
+~~~django
+{% load static responsive_media %}
+
+<script defer src="{% static 'media_engine/adaptive-media.js' %}"></script>
+
+{% media_image dashboard_item "image"
+    alt=dashboard_item.title
+    css_class="resizable-panel__image"
+    sizes="100vw"
+    adaptive=True
+%}
+~~~
+
+The Django tag marks the generated picture with data-moe-adaptive. The JavaScript helper observes the picture's actual rendered width and updates source sizes when the component is resized. The browser still makes the final source choice and still handles DPR and format support.
+
+Do not enable adaptive=True on every image. Use it only where normal sizes cannot accurately describe the component.
+
 ## 10. Historical backfill
 
 ~~~bash
