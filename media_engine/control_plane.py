@@ -1,4 +1,4 @@
-"""Optional Ziarama control-plane integration.
+"""Optional external control-plane integration.
 
 Runtime image processing NEVER calls the control plane. This module is invoked only
 by an explicit management command or a background Celery sync task. The engine
