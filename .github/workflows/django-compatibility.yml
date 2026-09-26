@@ -1,0 +1,30 @@
+name: Django Compatibility
+
+on:
+  push:
+    branches:
+      - master
+      - "release/**"
+  pull_request:
+
+jobs:
+  django-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        django:
+          - "4.2.30"
+          - "5.2.0"
+          - "6.0.0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e ".[celery]"
+      - run: pip install "Django==${{ matrix.django }}"
+      - run: python -c "import django, media_engine; print('Django', django.get_version(), 'MOE', media_engine.__version__)"
+      - run: DJANGO_SETTINGS_MODULE=config.settings.dev python manage.py check
+      - run: DJANGO_SETTINGS_MODULE=config.settings.dev python manage.py test media_engine
