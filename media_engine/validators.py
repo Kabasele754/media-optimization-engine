@@ -7,9 +7,10 @@ try:
 except Exception:
     pillow_avif = None
 
-ALLOWED_FORMATS = {'JPEG', 'PNG', 'WEBP', 'AVIF'}
+ALLOWED_FORMATS = {'JPEG', 'PNG', 'WEBP', 'AVIF', 'MPO'}
 MIME_BY_FORMAT = {
     'JPEG': 'image/jpeg',
+    'MPO': 'image/jpeg',
     'PNG': 'image/png',
     'WEBP': 'image/webp',
     'AVIF': 'image/avif',
@@ -31,6 +32,11 @@ def inspect_upload(uploaded_file):
         fmt = (image.format or '').upper()
         if fmt not in ALLOWED_FORMATS:
             raise ValidationError(f'Unsupported image format: {fmt or "unknown"}')
+        # Pillow reports some JPEG containers as MPO. For optimization purposes,
+        # the primary frame is a normal JPEG-compatible raster and can safely
+        # enter the standard image pipeline.
+        if fmt == 'MPO':
+            fmt = 'JPEG'
         width, height = image.size
         max_pixels = getattr(settings, 'MEDIA_ENGINE_MAX_PIXELS', 50_000_000)
         if width * height > max_pixels:
