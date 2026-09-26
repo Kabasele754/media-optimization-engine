@@ -177,6 +177,28 @@ JavaScript is not required for normal responsive images.
 
 Runtime measurement is appropriate only for highly dynamic components whose rendered width cannot be described reliably with sizes, such as resizable editors, canvas-like builders, or asynchronously mounted panels.
 
+## Flutter / native clients
+
+MOE also ships reference Dart adapters for native applications.
+
+Standard Flutter clients should fetch the image manifest, measure the rendered widget width, multiply it by device pixel ratio, and select the first derivative at or above that physical width.
+
+~~~dart
+final variant = manifest.select(
+  logicalWidth: constraints.maxWidth,
+  devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+  preferredFormat: 'webp',
+);
+~~~
+
+Reference adapters are packaged under:
+
+~~~text
+media_engine/adapters/flutter/
+~~~
+
+This keeps optimization and derivative generation on the Django/Python backend while allowing Flutter to select and cache the most appropriate immutable URL. Panorama manifests use the same principle at tile/level granularity.
+
 ## Backfill
 
 Historical media can be ingested with maintenance commands:
