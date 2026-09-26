@@ -1,91 +1,196 @@
-# Media Optimization Engine 1.4.0
+# Media Optimization Engineer 1.4
 
-Media Optimization Engine (MOE) is an extensible media-processing package for Django applications and autonomous media nodes. Version 1.3 adds a dedicated 360 panorama pipeline with multiresolution tiling inspired by map viewers: a low-resolution representation can appear immediately while only the visible high-resolution tiles are fetched.
+Media Optimization Engineer (MOE) is a reusable Django/Python package for image optimization, responsive delivery, and 360-degree media processing.
 
-## What this release handles
+The public package is intentionally application-agnostic. It does not depend on any consuming project's themes, tenants, brands, business models, or private infrastructure.
+
+## Core capabilities
 
 ### Standard images
 
-- AVIF and WebP derivatives;
-- responsive widths;
-- JPEG fallback;
-- smart focal point support;
+- automatic ImageField / FileField integration;
+- immutable originals;
+- AVIF, WebP and JPEG derivatives;
+- responsive width sets;
+- semantic profiles such as avatar, card, hero, and default;
+- focal-point aware crops;
 - dominant color, BlurHash and lightweight placeholders;
 - SHA-256 deduplication;
 - local, S3-compatible and Cloudflare R2 storage;
-- Redis locks/cache and Celery processing when enabled;
-- CDN-ready fingerprinted derivative paths.
+- Redis/Celery processing when enabled;
+- CDN-ready derivative URLs;
+- Django template tags for responsive rendering.
 
 ### 360 panoramas
 
-- equirectangular 2:1 panorama detection;
-- explicit `media_kind=panorama` support;
+- equirectangular panorama support;
 - progressive preview;
-- multiresolution pyramid;
-- 512x512 AVIF/WebP tiles;
-- generic viewer-independent manifest;
-- Pannellum adapter;
-- Marzipano adapter;
-- Three.js adapter;
-- Flutter manifest reference models;
-- optional cubemap generation;
-- audit and backfill commands.
-
-## Panorama example
-
-An 8192x4096 panorama becomes:
-
-```
-L0  1024x512
-L1  2048x1024
-L2  4096x2048
-L3  8192x4096
-```
-
-Each level is tiled. A viewer can display the preview or L0 immediately, request visible L1/L2 tiles while the camera moves, and request L3 only for the active field of view or zoomed areas.
+- multiresolution pyramids;
+- tiled AVIF/WebP delivery;
+- generic manifests;
+- Pannellum, Marzipano and Three.js adapters;
+- optional cubemap generation.
 
 ## Install
 
-```bash
+~~~bash
 pip install media-optimization-engine
-```
+~~~
 
-For infrastructure extras:
+Optional infrastructure extras:
 
-```bash
-pip install "media-optimization-engine[all]==1.4.0"
-```
+~~~bash
+pip install "media-optimization-engine[all]"
+~~~
 
-## Django integration
+## Django setup
 
-```python
+~~~python
+# settings.py
 INSTALLED_APPS = [
     # ...
     "rest_framework",
     "media_engine",
 ]
-```
 
-Include the URLs:
+MEDIA_ENGINE_TASK_MODE = "auto"
 
-```python
-path("api/v1/", include("media_engine.urls")),
-```
+MEDIA_ENGINE_AUTO_FIELDS = {
+    "articles.Article": {
+        "cover_image": {
+            "profile": "hero",
+            "role": "hero",
+        },
+    },
+    "accounts.Profile": {
+        "photo": {
+            "profile": "avatar",
+            "role": "content",
+        },
+    },
+    "organizations.Organization": {
+        "logo": {
+            "profile": "default",
+            "role": "content",
+        },
+    },
+}
+~~~
+
+~~~python
+# urls.py
+from django.urls import include, path
+
+urlpatterns = [
+    path("api/v1/", include("media_engine.urls")),
+]
+~~~
 
 Then:
 
-```bash
+~~~bash
 python manage.py migrate
 python manage.py media_engine_doctor
-```
+~~~
 
-## Automatic Django integration
+## Django template rendering
 
-Normal uploads do not require manual backfill/repair commands. Configure fields once with `MEDIA_ENGINE_AUTO_FIELDS`. With `MEDIA_ENGINE_TASK_MODE="auto"`, development runs inline when `DEBUG=True`, while production queues Celery when `DEBUG=False`.
+For normal model fields, use the high-level media_image tag:
 
-## Node autonomy
+~~~django
+{% load responsive_media %}
 
-The Ziarama Hub is optional. Processing, storage, Redis, Celery and media delivery stay local to each node.
+{% media_image article "cover_image"
+    alt=article.title
+    css_class="article-hero"
+    sizes="(max-width: 768px) 100vw, 1200px"
+%}
+~~~
+
+MOE resolves the field's MediaBinding, generates a responsive picture with available AVIF/WebP sources, preserves the image's CSS classes, and falls back to the original field URL only when no processed binding is available.
+
+### Logo or footer image
+
+~~~django
+{% load responsive_media %}
+
+{% media_image organization "logo"
+    alt=organization.name
+    css_class="site-logo"
+    sizes="240px"
+%}
+~~~
+
+### Card grid
+
+~~~django
+{% load responsive_media %}
+
+{% for article in articles %}
+  <article class="article-card">
+    {% media_image article "cover_image"
+        alt=article.title
+        css_class="article-card__image"
+        sizes="(max-width: 640px) 92vw, (max-width: 1100px) 45vw, 360px"
+    %}
+    <h2>{{ article.title }}</h2>
+  </article>
+{% endfor %}
+~~~
+
+### Direct binding rendering
+
+Advanced integrations can render a known asset directly:
+
+~~~django
+{% load responsive_media %}
+
+{% responsive_image binding.asset
+    profile=binding.profile
+    role=binding.role
+    alt=object.title
+    css_class="media-object"
+    picture_class="media-object-picture"
+    sizes="100vw"
+%}
+~~~
+
+### One optimized URL
+
+For Open Graph metadata, CSS backgrounds, emails, or APIs where picture is not possible:
+
+~~~django
+{% load responsive_media %}
+
+{% media_url organization "logo" preferred_width=512 preferred_format="webp" as optimized_logo %}
+
+<meta property="og:image" content="{{ optimized_logo }}">
+~~~
+
+For normal page images, prefer media_image over media_url; the browser can make a better final choice from srcset and sizes.
+
+## Responsive selection
+
+MOE provides width descriptors and sizes. The browser chooses the final resource using layout width, viewport, DPR, supported formats, and its own network heuristics.
+
+JavaScript is not required for normal responsive images.
+
+Runtime measurement is appropriate only for highly dynamic components whose rendered width cannot be described reliably with sizes, such as resizable editors, canvas-like builders, or asynchronously mounted panels.
+
+## Backfill
+
+Historical media can be ingested with maintenance commands:
+
+~~~bash
+python manage.py backfill_registered_media
+python manage.py audit_media_engine --fail-on-incomplete
+~~~
+
+New uploads registered in MEDIA_ENGINE_AUTO_FIELDS are handled automatically.
+
+## Runtime independence
+
+Embedded Django mode and standalone-node mode are autonomous. Optional control-plane synchronization must never be required for upload, processing, rendering, or derivative delivery.
 
 ## License
 
