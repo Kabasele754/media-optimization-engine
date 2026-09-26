@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
-  title: Media Optimization Engine API
+  title: Media Optimization Engineer API
   version: 1.4.0
   description: >-
-    Autonomous per-node media optimization API. Normal image processing and delivery
-    do not depend on the optional Ziarama control plane.
+    Autonomous media optimization API for Django/Python projects and standalone nodes.
+    Normal image processing and delivery do not depend on an optional external control plane.
 servers:
   - url: /
 paths:
