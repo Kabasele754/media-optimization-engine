@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 def safe_extension(fmt):
-    return {'JPEG': 'jpg', 'JPG': 'jpg', 'PNG': 'png', 'WEBP': 'webp', 'AVIF': 'avif'}.get(fmt.upper(), fmt.lower())
+    return {'JPEG': 'jpg', 'JPG': 'jpg', 'MPO': 'jpg', 'PNG': 'png', 'WEBP': 'webp', 'AVIF': 'avif'}.get(fmt.upper(), fmt.lower())
 
 
 def original_storage_name(sha256_hex, extension):
