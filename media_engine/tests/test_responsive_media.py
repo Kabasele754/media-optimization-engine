@@ -51,6 +51,14 @@ class ResponsiveImageTagTests(SimpleTestCase):
         self.assertIn('src="/media/fallback.webp"', html)
 
     @patch('media_engine.templatetags.responsive_media.build_manifest')
+    def test_adaptive_mode_marks_picture_for_runtime_sizing(self, build_manifest):
+        build_manifest.return_value = self.manifest()
+
+        html = str(responsive_image(object(), adaptive=True))
+
+        self.assertIn('data-moe-adaptive="1"', html)
+
+    @patch('media_engine.templatetags.responsive_media.build_manifest')
     def test_custom_loading_and_dimensions_override_defaults(self, build_manifest):
         build_manifest.return_value = self.manifest()
 
