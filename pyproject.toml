@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "media-optimization-engine"
-version = "1.4.2"
+version = "1.4.3"
 description = "Media Optimization Engineer for Django/Python: automatic model-field optimization, responsive picture/srcset rendering, AVIF/WebP derivatives, 360 media, autonomous nodes, and CDN-ready storage."
 requires-python = ">=3.11"
 authors = [{ name = "Achille Kabasele", email = "pepexykabasele@gmail.com" }]
