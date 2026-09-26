@@ -34,7 +34,7 @@ class BackfillRegisteredMediaTests(TestCase):
                 SimpleNamespace(pk=1),
                 SimpleNamespace(pk=2),
             ]),
-            _meta=SimpleNamespace(label="demo.Photo"),
+            _meta=SimpleNamespace(label="demo.Photo", db_table="demo_photo"),
         )
         entries.return_value = [
             SimpleNamespace(
