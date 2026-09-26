@@ -177,6 +177,16 @@ JavaScript is not required for normal responsive images.
 
 Runtime measurement is appropriate only for highly dynamic components whose rendered width cannot be described reliably with sizes, such as resizable editors, canvas-like builders, or asynchronously mounted panels.
 
+## Docker image
+
+The standalone service is also published as a multi-architecture GHCR image:
+
+~~~bash
+docker pull ghcr.io/kabasele754/media-optimization-engine:1.4.1
+~~~
+
+For Compose deployment, see `docs/DOCKER.md` and `docker-compose.ghcr.yml`.
+
 ## Flutter / native clients
 
 MOE also ships reference Dart adapters for native applications.
