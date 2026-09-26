@@ -129,6 +129,7 @@ def responsive_image(
     fetchpriority='',
     style='',
     element_id='',
+    adaptive=False,
 ):
     """Render responsive sources while keeping presentation attributes on the img."""
     manifest = build_manifest(asset, profile=profile)
@@ -170,7 +171,11 @@ def responsive_image(
         style=merged_style,
         id=element_id,
     )
-    picture_attrs = _attrs(css_class=picture_class, style=picture_style)
+    picture_attrs = _attrs(
+        css_class=picture_class,
+        style=picture_style,
+        data_moe_adaptive='1' if adaptive else '',
+    )
     return mark_safe(
         f'<picture{picture_attrs}>' + ''.join(source_parts) + f'<img{img_attrs}></picture>'
     )
@@ -194,6 +199,7 @@ def media_image(
     fetchpriority='',
     style='',
     element_id='',
+    adaptive=False,
 ):
     """Render a model ImageField or FileField through its MediaBinding."""
     binding = _binding_for(instance, field_name)
@@ -215,6 +221,7 @@ def media_image(
             fetchpriority=fetchpriority,
             style=style,
             element_id=element_id,
+            adaptive=adaptive,
         )
 
     return _fallback_img(
