@@ -35,11 +35,18 @@ def _package_checks() -> list[Check]:
 
     for module, label in [
         ("PIL", "Pillow"),
-        ("PIL.AvifImagePlugin", "AVIF plugin"),
         ("rest_framework", "Django REST Framework"),
     ]:
         found = importlib.util.find_spec(module) is not None
         checks.append(Check(label, found, "installed" if found else "missing"))
+
+    try:
+        import pillow_avif  # noqa: F401
+        from PIL import Image
+        supported = "AVIF" in Image.registered_extensions().values() or ".avif" in Image.registered_extensions()
+        checks.append(Check("AVIF plugin", supported, "pillow-avif-plugin registered" if supported else "module imported but codec unavailable"))
+    except Exception as exc:
+        checks.append(Check("AVIF plugin", False, f"missing or unusable: {exc}"))
     return checks
 
 
