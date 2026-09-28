@@ -119,6 +119,10 @@ class PanoramaTile(models.Model):
         indexes = [
             models.Index(fields=['asset', 'profile', 'level']),
             models.Index(fields=['asset', 'status']),
+            models.Index(
+                fields=['asset', 'profile', 'level', 'face'],
+                name='media_engin_cube_face_idx',
+            ),
         ]
 
     def __str__(self):
