@@ -1,3 +1,7 @@
+## 1.4.4
+- Expanded media FileField path columns to 500 characters so Marzipano cubemap tile paths persist safely on PostgreSQL.
+- Added migration 0004_expand_media_file_paths for existing installations.
+
 # Changelog
 
 ## 1.4.0rc3 - 2026-09-25
