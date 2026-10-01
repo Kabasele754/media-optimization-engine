@@ -1,0 +1,29 @@
+name: Panorama development workspace
+on:
+  push:
+    branches: [feat/panorama-reliability-performance]
+    paths: [.github/workflows/panorama-workspace.yml]
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Export source and offline test dependencies
+        run: |
+          mkdir -p workspace/wheels
+          git archive --format=zip HEAD -o workspace/source.zip
+          python -m pip download --only-binary=:all: -d workspace/wheels 'Django>=5.2,<5.3' djangorestframework celery redis blurhash pillow-avif-plugin prometheus-client python-dotenv dj-database-url gunicorn django-cors-headers whitenoise
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panorama-dev-workspace
+          path: workspace/
+          retention-days: 1
+          if-no-files-found: error
