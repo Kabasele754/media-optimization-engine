@@ -74,8 +74,8 @@ class MediaVariant(models.Model):
             )
         ]
         indexes = [
-            models.Index(fields=['asset', 'profile', 'status']),
-            models.Index(fields=['processor_version', 'status']),
+            models.Index(fields=['asset', 'profile', 'status'], name='media_engin_asset_i_60f63d_idx'),
+            models.Index(fields=['processor_version', 'status'], name='media_engin_process_7c2c36_idx'),
         ]
 
     def __str__(self):
@@ -90,6 +90,7 @@ class PanoramaTile(models.Model):
         FAILED = 'FAILED', 'Failed'
 
     asset = models.ForeignKey(MediaAsset, related_name='panorama_tiles', on_delete=models.CASCADE)
+    build = models.ForeignKey('PanoramaBuild', null=True, blank=True, related_name='tiles', on_delete=models.CASCADE)
     profile = models.CharField(max_length=64, default='panorama.multires')
     processor_version = models.PositiveIntegerField(default=1)
     level = models.PositiveSmallIntegerField()
@@ -113,12 +114,17 @@ class PanoramaTile(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['asset', 'profile', 'processor_version', 'level', 'face', 'col', 'row', 'format'],
-                name='uniq_panorama_tile_version_v2',
+                condition=models.Q(build__isnull=True),
+                name='uniq_panorama_tile_legacy',
+            ),
+            models.UniqueConstraint(
+                fields=['build', 'level', 'face', 'col', 'row', 'format'],
+                name='uniq_panorama_build_tile',
             )
         ]
         indexes = [
-            models.Index(fields=['asset', 'profile', 'level']),
-            models.Index(fields=['asset', 'status']),
+            models.Index(fields=['asset', 'profile', 'level'], name='media_engin_asset_i_360lvl_idx'),
+            models.Index(fields=['asset', 'status'], name='media_engin_asset_s_360_idx'),
             models.Index(
                 fields=['asset', 'profile', 'level', 'face'],
                 name='media_engin_cube_face_idx',
@@ -147,3 +153,44 @@ class MediaBinding(models.Model):
                 name='uniq_media_binding_field',
             )
         ]
+
+
+class PanoramaBuild(models.Model):
+    """An immutable output namespace; only complete levels are published."""
+
+    class State(models.TextChoices):
+        PROCESSING = 'PROCESSING', 'Processing'
+        PREVIEW_READY = 'PREVIEW_READY', 'Preview ready'
+        BASE_LEVEL_READY = 'BASE_LEVEL_READY', 'Base level ready'
+        READY = 'READY', 'Ready'
+        FAILED = 'FAILED', 'Failed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    asset = models.ForeignKey(MediaAsset, related_name='panorama_builds', on_delete=models.CASCADE)
+    profile = models.CharField(max_length=64)
+    processor_version = models.PositiveIntegerField()
+    fingerprint = models.CharField(max_length=64)
+    config = models.JSONField(default=dict)
+    state = models.CharField(max_length=24, choices=State.choices, default=State.PROCESSING)
+    preview = models.FileField(upload_to='media_engine/panoramas/', max_length=500, blank=True)
+    # Store storage keys, never expiring signed URLs, in this snapshot.
+    manifest = models.JSONField(default=dict)
+    is_active = models.BooleanField(default=False)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['asset', 'profile'], condition=models.Q(is_active=True),
+                                    name='uniq_active_panorama_build'),
+        ]
+        indexes = [models.Index(fields=['asset', 'profile', 'fingerprint'], name='moe_pano_build_lookup')]
+
+
+class MediaProcessingLease(models.Model):
+    """Portable, database-backed lease with owner-checked renewal/release."""
+    key = models.CharField(max_length=255, primary_key=True)
+    owner = models.CharField(max_length=32)
+    expires_at = models.DateTimeField(db_index=True)

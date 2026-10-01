@@ -6,7 +6,8 @@ from .profiles import get_profile
 
 def manifest_cache_key(asset_id, profile='default'):
     version = getattr(settings, 'MEDIA_ENGINE_PIPELINE_VERSION', 1)
-    return f'media-engine:manifest:v{version}:{asset_id}:{profile}'
+    from .processors.panorama.manifest import cache_namespace
+    return f'media-engine:manifest:{cache_namespace()}:v{version}:{asset_id}:{profile}'
 
 
 def invalidate_manifest(asset_id):
@@ -64,26 +65,16 @@ def _standard_manifest(asset, profile):
     }
 
 
-def build_manifest(asset_or_id, profile='default'):
-    asset_id = getattr(asset_or_id, 'id', asset_or_id)
-    key = manifest_cache_key(asset_id, profile)
+def build_manifest(asset_or_id, profile='default', *, compact=False):
+    asset = asset_or_id if isinstance(asset_or_id, MediaAsset) else MediaAsset.objects.get(pk=asset_or_id)
+    if asset.media_kind == 'panorama' or profile.startswith('panorama.'):
+        from .processors.panorama.manifest import panorama_manifest
+        # Cache storage-key snapshots, not incomplete responses or signed URLs.
+        return panorama_manifest(asset, profile=profile if profile.startswith('panorama.') else 'panorama.multires', compact=compact)
+    key = manifest_cache_key(asset.id, profile)
     cached = cache.get(key)
     if cached:
         return cached
-    asset = asset_or_id if isinstance(asset_or_id, MediaAsset) else MediaAsset.objects.get(pk=asset_id)
-    if asset.media_kind == 'panorama' or profile.startswith('panorama.'):
-        from .processors.panorama.manifest import panorama_manifest
-        result = panorama_manifest(asset, profile=profile if profile.startswith('panorama.') else 'panorama.multires')
-        if result.get('preview'):
-            result['preview'] = public_url(asset.panorama_preview)
-        for level in result.get('levels', []):
-            for tiles in level.get('formats', {}).values():
-                for tile in tiles:
-                    url = tile.get('url', '')
-                    cdn = getattr(settings, 'MEDIA_ENGINE_CDN_BASE_URL', '')
-                    if cdn and url.startswith('/'):
-                        tile['url'] = f'{cdn}{url}'
-    else:
-        result = _standard_manifest(asset, profile)
+    result = _standard_manifest(asset, profile)
     cache.set(key, result, 3600)
     return result

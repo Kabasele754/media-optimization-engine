@@ -16,7 +16,9 @@ def resolved_task_mode():
 def queue_for_profile(profile, backfill=False):
     if backfill:
         return 'image_backfill'
-    if profile == 'hero' or profile.startswith('panorama.'):
+    if profile.startswith('panorama.'):
+        return panorama_queue('tiles')
+    if profile == 'hero':
         return 'image_critical'
     return 'image_normal'
 
@@ -27,8 +29,20 @@ def enqueue_asset(asset_id, profile='default', force=False, backfill=False):
         from .services import generate_all_variants
         asset = MediaAsset.objects.get(pk=asset_id)
         return generate_all_variants(asset, profile_name=profile, force=force)
+    if profile.startswith('panorama.') and getattr(settings, 'MEDIA_ENGINE_PANORAMA_STAGED_TASKS', False):
+        from .tasks import prepare_panorama_asset
+        return prepare_panorama_asset.apply_async(args=[str(asset_id), profile, force, backfill],
+            queue=panorama_queue('preview', backfill))
     from .tasks import generate_asset_variants
     return generate_asset_variants.apply_async(
         args=[str(asset_id), profile, force],
         queue=queue_for_profile(profile, backfill=backfill),
     )
+
+
+def panorama_queue(stage, backfill=False):
+    if backfill:
+        return getattr(settings, 'MEDIA_ENGINE_PANORAMA_BACKFILL_QUEUE', 'image_backfill')
+    if stage == 'preview':
+        return getattr(settings, 'MEDIA_ENGINE_PANORAMA_PREVIEW_QUEUE', 'image_critical')
+    return getattr(settings, 'MEDIA_ENGINE_PANORAMA_TILES_QUEUE', 'image_normal')

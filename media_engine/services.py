@@ -128,6 +128,7 @@ def generate_variant(asset, *, profile_name, width, fmt, force=False):
             target = profile.get('target_bytes', {}).get(width)
             with GENERATION_SECONDS.labels(format=fmt, profile=profile_name).time():
                 encoded = encode_with_budget(work, fmt, quality, target_bytes=target)
+            acquired.checkpoint(force=True)
             path = derivative_storage_name(asset.original_sha256, version, profile_name, width, fmt)
             if default_storage.exists(path):
                 default_storage.delete(path)
@@ -138,7 +139,8 @@ def generate_variant(asset, *, profile_name, width, fmt, force=False):
             variant.quality = encoded.quality
             variant.status = MediaVariant.Status.READY
             variant.last_error = ''
-            variant.save()
+            with acquired.guard():
+                variant.save()
             VARIANTS_GENERATED.labels(format=fmt, profile=profile_name).inc()
             DERIVATIVE_BYTES.labels(format=fmt).inc(len(encoded.content))
             return variant

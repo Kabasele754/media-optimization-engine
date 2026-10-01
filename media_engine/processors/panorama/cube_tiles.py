@@ -3,14 +3,9 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-import numpy as np
 from PIL import Image
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 
-from ...image_ops import encode_with_budget
-from ...models import PanoramaTile
-from .cubemap import equirectangular_to_cubemap
+from .cubemap import iter_cubemap_faces
 
 # Marzipano's CubeGeometry canonical face keys.
 FACE_NAME_TO_KEY = {
@@ -47,6 +42,8 @@ def _largest_power_of_two_lte(value: int, *, minimum: int = 512, maximum: int = 
 
 
 def cube_level_sizes(original_width: int, *, min_size: int = 512, max_size: int = 4096) -> list[int]:
+    if any(v < 16 or v & (v - 1) for v in (min_size, max_size)) or max_size < min_size:
+        raise ValueError('Cubemap bounds must be ordered powers of two >= 16')
     # A common equirectangular panorama has width ~= 4 * cubemap face width.
     estimated = max(min_size, int(original_width / 4))
     top = _largest_power_of_two_lte(estimated, minimum=min_size, maximum=max_size)
@@ -58,64 +55,34 @@ def cube_level_sizes(original_width: int, *, min_size: int = 512, max_size: int 
     return sizes or [min_size]
 
 
-def generate_cube_level(
-    asset,
-    source_image: Image.Image,
-    *,
-    profile: str,
-    version: int,
-    plan: CubeLevelPlan,
-    fmt: str = 'webp',
-    quality: int = 72,
-    force: bool = False,
-) -> int:
-    faces = equirectangular_to_cubemap(source_image, plan.size)
-    generated = 0
-    for face_name, face_image in faces.items():
-        face = FACE_NAME_TO_KEY[face_name]
+def generate_cube_level(asset, source_image: Image.Image, *, profile: str, version: int,
+                        plan: CubeLevelPlan, fmt='webp', quality=72, force=False,
+                        build=None, lease=None, source_array=None) -> int:
+    from .tile_writer import TileWriter
+    from .publication import storage_prefix
+    writer = TileWriter(asset, profile, version, plan.level, build=build, lease=lease)
+    missing_faces = []
+    for name, face in FACE_NAME_TO_KEY.items():
+        if any(force or not writer.ready(face, col, row, fmt,
+                    min(plan.tile_size, plan.size - col * plan.tile_size),
+                    min(plan.tile_size, plan.size - row * plan.tile_size))
+               for row in range(plan.rows) for col in range(plan.cols)):
+            missing_faces.append(name)
+    if not missing_faces:
+        return 0  # No projection, source decode or storage HEAD for completed levels.
+    prefix = storage_prefix(build) if build else (
+        f'media_engine/panoramas/{asset.original_sha256[:2]}/{asset.original_sha256}/v{version}/{profile}/')
+    for name, face_image in iter_cubemap_faces(source_image, plan.size, faces=missing_faces,
+            checkpoint=lease.checkpoint if lease else None, source_array=source_array):
+        face = FACE_NAME_TO_KEY[name]
         for row in range(plan.rows):
             for col in range(plan.cols):
-                left = col * plan.tile_size
-                top = row * plan.tile_size
-                right = min(left + plan.tile_size, plan.size)
-                bottom = min(top + plan.tile_size, plan.size)
-                tile = face_image.crop((left, top, right, bottom))
-                obj, _ = PanoramaTile.objects.get_or_create(
-                    asset=asset,
-                    profile=profile,
-                    processor_version=version,
-                    level=plan.level,
-                    face=face,
-                    col=col,
-                    row=row,
-                    format=fmt,
-                    defaults={
-                        'width': tile.width,
-                        'height': tile.height,
-                        'level_width': plan.size,
-                        'level_height': plan.size,
-                    },
-                )
-                if obj.status == PanoramaTile.Status.READY and not force:
+                left, top = col * plan.tile_size, row * plan.tile_size
+                right, bottom = min(left + plan.tile_size, plan.size), min(top + plan.tile_size, plan.size)
+                if not force and writer.ready(face, col, row, fmt, right-left, bottom-top):
                     continue
-                encoded = encode_with_budget(tile, fmt, quality, target_bytes=None)
-                path = (
-                    f'media_engine/panoramas/{asset.original_sha256[:2]}/'
-                    f'{asset.original_sha256}/v{version}/{profile}/'
-                    f'l{plan.level}/{face}/{col}_{row}.{fmt}'
-                )
-                if default_storage.exists(path):
-                    default_storage.delete(path)
-                stored = default_storage.save(path, ContentFile(encoded.content))
-                obj.file = stored
-                obj.width = tile.width
-                obj.height = tile.height
-                obj.level_width = plan.size
-                obj.level_height = plan.size
-                obj.file_size = len(encoded.content)
-                obj.quality = encoded.quality
-                obj.status = PanoramaTile.Status.READY
-                obj.last_error = ''
-                obj.save()
-                generated += 1
-    return generated
+                writer.write(face_image.crop((left, top, right, bottom)), face=face, col=col, row=row,
+                    fmt=fmt, quality=quality, level_width=plan.size, level_height=plan.size, prefix=prefix)
+        writer.flush()
+        face_image.close()
+    return writer.generated
