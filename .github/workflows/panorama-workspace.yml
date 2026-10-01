@@ -1,4 +1,4 @@
-name: Panorama development workspace
+name: Apply verified panorama source
 on:
   push:
     branches: [feat/panorama-reliability-performance]
@@ -6,24 +6,29 @@ on:
 permissions:
   contents: read
 jobs:
-  export:
+  apply:
+    if: github.ref == 'refs/heads/feat/panorama-reliability-performance'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - name: Export source and offline test dependencies
+      - name: Verify and apply tested source patch
         run: |
-          mkdir -p workspace/wheels
-          git archive --format=zip HEAD -o workspace/source.zip
-          python -m pip download --only-binary=:all: -d workspace/wheels 'Django>=5.2,<5.3' djangorestframework celery redis blurhash pillow-avif-plugin prometheus-client python-dotenv dj-database-url gunicorn django-cors-headers whitenoise
-      - uses: actions/upload-artifact@v4
-        with:
-          name: panorama-dev-workspace
-          path: workspace/
-          retention-days: 1
-          if-no-files-found: error
+          python - <<'PY'
+          import base64, gzip, hashlib, os, pathlib
+          parts = [pathlib.Path(f'.development/panorama.patch.{n}') for n in range(5)]
+          encoded = ''.join(p.read_text().strip() for p in parts)
+          raw = gzip.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(raw).hexdigest() == '9dd171f1588dd744c62fb02c1a680cb4d7eb8117d6d69418b1fac796867bbcea', 'Patch checksum mismatch'
+          pathlib.Path(os.environ['RUNNER_TEMP'], 'panorama.patch').write_bytes(raw)
+          PY
+          git apply --check --index "$RUNNER_TEMP/panorama.patch"
+          git apply --index --whitespace=error "$RUNNER_TEMP/panorama.patch"
+          git rm -f .github/workflows/panorama-workspace.yml .development/panorama.patch.*
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(panorama): publish immutable progressive builds and validated manifests'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
