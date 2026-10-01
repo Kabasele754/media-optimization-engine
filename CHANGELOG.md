@@ -1,3 +1,13 @@
+# 1.5.0rc1 - panorama publication and performance (unreleased)
+
+- Add immutable, fenced panorama build revisions and migration 0005.
+- Publish previews and complete base levels early; keep previous complete builds online.
+- Cache storage descriptors, not signed URLs; validate legacy version/level completeness.
+- Support compact Marzipano descriptors with explicit storage-safe fallback.
+- Bilinear banded conversion, resumed face/level skipping and batched tile metadata writes.
+- Optional staged Celery preview/tile queues, bounded metrics and read-only diagnostics.
+- See docs/PANORAMA_PERFORMANCE.md for rollout and compatibility constraints.
+
 ## 1.4.4
 - Expanded media FileField path columns to 500 characters so Marzipano cubemap tile paths persist safely on PostgreSQL.
 - Added migration 0004_expand_media_file_paths for existing installations.

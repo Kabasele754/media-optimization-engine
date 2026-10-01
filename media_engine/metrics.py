@@ -10,6 +10,8 @@ except ImportError:
             return None
         def set(self, *args, **kwargs):
             return None
+        def observe(self, *args, **kwargs):
+            return None
         def time(self):
             class _Timer:
                 def __enter__(self): return self
@@ -32,3 +34,10 @@ READY_ASSETS = Gauge('media_engine_ready_assets', 'Number of ready media assets'
 
 def metrics_view(request):
     return HttpResponse(generate_latest(), content_type=CONTENT_TYPE_LATEST)
+
+
+PANORAMA_TILES_GENERATED = Counter('media_engine_panorama_tiles_generated_total', 'New panorama tiles', ['format'])
+PANORAMA_BYTES_WRITTEN = Counter('media_engine_panorama_bytes_written_total', 'Panorama bytes written', ['format'])
+PANORAMA_STAGE_SECONDS = Histogram('media_engine_panorama_stage_seconds', 'Panorama stage duration', ['stage'])
+PANORAMA_BUILD_FAILURES = Counter('media_engine_panorama_build_failures_total', 'Failed panorama builds')
+PANORAMA_MANIFEST_BYTES = Histogram('media_engine_panorama_manifest_bytes', 'Serialized panorama manifest bytes', ['representation'])

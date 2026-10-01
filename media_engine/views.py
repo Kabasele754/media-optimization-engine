@@ -1,5 +1,8 @@
 from django.conf import settings
-from django.http import HttpResponseRedirect
+import hashlib
+import json
+from django.http import HttpResponseRedirect, HttpResponseNotModified
+from django.utils.cache import patch_vary_headers
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import action
@@ -71,7 +74,8 @@ class MediaViewSet(ViewSet):
     def panorama(self, request, pk=None):
         asset = get_object_or_404(MediaAsset, pk=pk)
         profile = request.query_params.get('profile', 'panorama.multires')
-        manifest = build_manifest(asset, profile=profile)
+        compact = request.query_params.get('representation') == 'compact'
+        manifest = build_manifest(asset, profile=profile, compact=compact)
         adapter = request.query_params.get('adapter', 'generic').lower()
         if adapter == 'pannellum':
             from .adapters.pannellum import to_pannellum
@@ -84,7 +88,15 @@ class MediaViewSet(ViewSet):
             manifest = to_threejs(manifest)
         elif adapter != 'generic':
             return Response({'adapter': 'Unsupported adapter.'}, status=400)
-        return Response(manifest)
+        encoded = json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()
+        from .metrics import PANORAMA_MANIFEST_BYTES
+        PANORAMA_MANIFEST_BYTES.labels(representation='compact' if compact else 'explicit').observe(len(encoded))
+        etag = '"' + hashlib.sha256(encoded).hexdigest() + '"'
+        response = HttpResponseNotModified() if request.headers.get('If-None-Match') == etag else Response(manifest)
+        response['ETag'] = etag
+        response['Cache-Control'] = 'private, no-cache'
+        patch_vary_headers(response, ['Authorization', 'Cookie'])
+        return response
 
     @action(detail=True, methods=['get'])
     def render(self, request, pk=None):

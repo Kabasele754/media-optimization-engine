@@ -227,3 +227,8 @@ Embedded Django mode and standalone-node mode are autonomous. Optional control-p
 ## License
 
 MIT License. Copyright (c) 2026 Achille Kabasele.
+
+## Progressive panorama publication
+
+The 1.5 release candidate adds immutable revisions, early preview/base publication,
+validated manifests and staged processing. See [the rollout guide](docs/PANORAMA_PERFORMANCE.md).
