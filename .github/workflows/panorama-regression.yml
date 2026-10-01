@@ -1,0 +1,46 @@
+name: Panorama regression
+on:
+  push:
+    branches: [feat/panorama-runtime-hardening]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Prepare reproducible offline test dependencies
+        run: |
+          mkdir -p review/wheels
+          python -m pip wheel --wheel-dir review/wheels . celery redis pytest
+      - name: Source snapshots for regression review
+        run: |
+          git archive --format=zip HEAD -o review/moe-source.zip
+          curl --fail --location --retry 2 https://codeload.github.com/Kabasele754/twinscopes/zip/6c503a0cf5608e8a9e783dca9e4cd7788885fc44 -o /tmp/twinscopes.zip
+          python - <<'PY'
+          import zipfile
+          from pathlib import PurePosixPath
+          with zipfile.ZipFile('/tmp/twinscopes.zip') as source, zipfile.ZipFile('review/twinscopes-source.zip', 'w', zipfile.ZIP_DEFLATED) as target:
+              for item in source.infolist():
+                  path = PurePosixPath(item.filename)
+                  rel = PurePosixPath(*path.parts[1:])
+                  if item.is_dir() or not rel.parts:
+                      continue
+                  if rel.suffix in {'.py', '.js', '.css', '.html', '.md', '.toml', '.yml', '.yaml'} or str(rel) == 'requirements.txt':
+                      target.writestr(str(rel), source.read(item))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: panorama-regression-inputs
+          path: review/
+          retention-days: 3
+      - name: Baseline tests
+        run: |
+          python -m pip install --no-index --find-links review/wheels . celery redis
+          DJANGO_SETTINGS_MODULE=config.settings.dev python manage.py test media_engine --noinput
