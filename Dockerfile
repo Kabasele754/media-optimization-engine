@@ -1,6 +1,6 @@
 FROM python:3.12-slim
 
-ARG MOE_VERSION=1.4.1
+ARG MOE_VERSION=1.5.0rc2
 
 LABEL org.opencontainers.image.title="Media Optimization Engineer" \
       org.opencontainers.image.description="Django/Python media optimization engine with responsive AVIF/WebP delivery and 360 media support." \
@@ -13,7 +13,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     MEDIA_ENGINE_VERSION=${MOE_VERSION}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libjpeg62-turbo-dev zlib1g-dev libwebp-dev libavif-dev \
+    build-essential ffmpeg libjpeg62-turbo-dev zlib1g-dev libwebp-dev libavif-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
