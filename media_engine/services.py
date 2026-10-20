@@ -1,6 +1,7 @@
 import hashlib
 import io
 from pathlib import Path
+from pathlib import Path
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -11,13 +12,24 @@ from .metrics import IMAGES_INGESTED, ORIGINAL_BYTES, VARIANTS_GENERATED, VARIAN
 from .models import MediaAsset, MediaVariant
 from .profiles import get_profile, requested_widths, all_formats
 from .storage_paths import safe_extension, original_storage_name, derivative_storage_name
-from .validators import inspect_upload
+from .validators import inspect_upload, inspect_audio_upload
 from .locks import cache_lock
 from .runtime_config import effective_feature_flags
 
 
 def ingest_uploaded_file(uploaded_file, *, owner_ref='', focal_x=None, focal_y=None, profile='default', enqueue=True, media_kind='', projection=''):
-    raw, fmt, mime, width, height = inspect_upload(uploaded_file)
+    requested_audio = media_kind == 'audio' or profile.startswith('audio.')
+    profile_config = get_profile(profile)
+    if requested_audio:
+        raw, fmt, mime, audio_metadata = inspect_audio_upload(
+            uploaded_file,
+            profile=profile_config,
+        )
+        width = height = 0
+        media_kind = 'audio'
+    else:
+        raw, fmt, mime, width, height = inspect_upload(uploaded_file)
+        audio_metadata = {}
     sha = hashlib.sha256(raw).hexdigest()
     extension = safe_extension(fmt)
     version = getattr(settings, 'MEDIA_ENGINE_PIPELINE_VERSION', 1)
@@ -33,20 +45,23 @@ def ingest_uploaded_file(uploaded_file, *, owner_ref='', focal_x=None, focal_y=N
     if not default_storage.exists(storage_name):
         default_storage.save(storage_name, ContentFile(raw))
 
-    image = normalized_image(io.BytesIO(raw))
-    from .processors.panorama.detect import detect_equirectangular
-    detection = detect_equirectangular(width, height, getattr(image, 'info', {}) or {})
-    if not media_kind:
-        media_kind = 'panorama' if (profile.startswith('panorama.') or detection.is_panorama) else 'image'
-    if media_kind == 'panorama' and not projection:
-        projection = detection.projection or 'equirectangular'
-    feature_flags = effective_feature_flags()
-    auto_focal = feature_flags.get('auto_focal', getattr(settings, 'MEDIA_ENGINE_AUTO_FOCAL', False))
-    if auto_focal and focal_x is None and focal_y is None:
-        from .focal_detectors import detect_focal_point
-        auto_x, auto_y = detect_focal_point(image)
-        focal_x = auto_x
-        focal_y = auto_y
+    image = None
+    detection = None
+    if media_kind != 'audio':
+        image = normalized_image(io.BytesIO(raw))
+        from .processors.panorama.detect import detect_equirectangular
+        detection = detect_equirectangular(width, height, getattr(image, 'info', {}) or {})
+        if not media_kind:
+            media_kind = 'panorama' if (profile.startswith('panorama.') or detection.is_panorama) else 'image'
+        if media_kind == 'panorama' and not projection:
+            projection = detection.projection or 'equirectangular'
+        feature_flags = effective_feature_flags()
+        auto_focal = feature_flags.get('auto_focal', getattr(settings, 'MEDIA_ENGINE_AUTO_FOCAL', False))
+        if auto_focal and focal_x is None and focal_y is None:
+            from .focal_detectors import detect_focal_point
+            auto_x, auto_y = detect_focal_point(image)
+            focal_x = auto_x
+            focal_y = auto_y
     try:
         asset = MediaAsset.objects.create(
             original_sha256=sha,
@@ -58,14 +73,22 @@ def ingest_uploaded_file(uploaded_file, *, owner_ref='', focal_x=None, focal_y=N
             original_size=len(raw),
             media_kind=media_kind,
             projection=projection,
-            processor='panorama_360' if media_kind == 'panorama' else 'standard_image',
-            metadata_json={
-                'panorama_detection_confidence': detection.confidence,
-                'panorama_detection_reason': detection.reason,
-            },
-            dominant_color=dominant_color(image),
-            blurhash=make_blurhash(image),
-            placeholder_data_url=placeholder_data_url(image),
+            processor=(
+                'standard_audio' if media_kind == 'audio'
+                else 'panorama_360' if media_kind == 'panorama'
+                else 'standard_image'
+            ),
+            metadata_json=(
+                audio_metadata
+                if media_kind == 'audio'
+                else {
+                    'panorama_detection_confidence': detection.confidence,
+                    'panorama_detection_reason': detection.reason,
+                }
+            ),
+            dominant_color='' if media_kind == 'audio' else dominant_color(image),
+            blurhash='' if media_kind == 'audio' else make_blurhash(image),
+            placeholder_data_url='' if media_kind == 'audio' else placeholder_data_url(image),
             focal_x=focal_x,
             focal_y=focal_y,
             processor_version=version,
@@ -148,6 +171,105 @@ def generate_variant(asset, *, profile_name, width, fmt, force=False):
             variant.status = MediaVariant.Status.FAILED
             variant.last_error = str(exc)
             variant.save(update_fields=['status', 'last_error', 'updated_at'])
+            VARIANT_FAILURES.labels(format=fmt, profile=profile_name).inc()
+            raise
+
+
+def generate_audio_variant(asset, profile_name='audio.invitation', force=False):
+    from .audio_ops import transcode_audio_bytes
+
+    version = getattr(settings, 'MEDIA_ENGINE_PIPELINE_VERSION', 1)
+    profile = get_profile(profile_name)
+    fmt = str(profile.get('fallback_format') or 'mp3').lower()
+    bitrate = max(48, min(int(profile.get('bitrate_kbps') or 96), 192))
+    lock_key = f'media-engine:{asset.id}:{version}:{profile_name}:audio:{fmt}'
+
+    with cache_lock(lock_key) as acquired:
+        if not acquired:
+            return None
+        existing = MediaVariant.objects.filter(
+            asset=asset,
+            profile=profile_name,
+            width=0,
+            format=fmt,
+            processor_version=version,
+            status=MediaVariant.Status.READY,
+        ).first()
+        if existing and not force:
+            return existing
+
+        variant, _ = MediaVariant.objects.get_or_create(
+            asset=asset,
+            profile=profile_name,
+            width=0,
+            format=fmt,
+            processor_version=version,
+            defaults={'height': 0, 'status': MediaVariant.Status.PROCESSING},
+        )
+        variant.status = MediaVariant.Status.PROCESSING
+        variant.last_error = ''
+        variant.save(update_fields=['status', 'last_error', 'updated_at'])
+
+        asset.status = MediaAsset.Status.PROCESSING
+        asset.last_error = ''
+        asset.save(update_fields=['status', 'last_error', 'updated_at'])
+
+        try:
+            with default_storage.open(asset.original_file.name, 'rb') as source:
+                raw = source.read()
+            suffix = Path(asset.original_file.name).suffix or '.mp3'
+            encoded, metadata = transcode_audio_bytes(
+                raw,
+                source_suffix=suffix,
+                profile=profile,
+            )
+            acquired.checkpoint(force=True)
+            path = derivative_storage_name(
+                asset.original_sha256,
+                version,
+                profile_name,
+                0,
+                fmt,
+            )
+            if default_storage.exists(path):
+                default_storage.delete(path)
+            stored = default_storage.save(path, ContentFile(encoded))
+            variant.file = stored
+            variant.height = 0
+            variant.file_size = len(encoded)
+            variant.quality = bitrate
+            variant.status = MediaVariant.Status.READY
+            variant.last_error = ''
+            with acquired.guard():
+                variant.save()
+
+            asset.status = MediaAsset.Status.READY
+            asset.last_error = ''
+            asset.processed_at = timezone.now()
+            asset.processor_version = version
+            metadata_json = dict(asset.metadata_json or {})
+            metadata_json.update({
+                'optimized_duration_ms': metadata.get('duration_ms', 0),
+                'optimized_bitrate_kbps': bitrate,
+                'optimized_bytes': len(encoded),
+            })
+            asset.metadata_json = metadata_json
+            asset.save(update_fields=[
+                'status', 'last_error', 'processed_at',
+                'processor_version', 'metadata_json', 'updated_at',
+            ])
+            VARIANTS_GENERATED.labels(format=fmt, profile=profile_name).inc()
+            DERIVATIVE_BYTES.labels(format=fmt).inc(len(encoded))
+            from .manifest import invalidate_manifest
+            invalidate_manifest(asset.id)
+            return variant
+        except Exception as exc:
+            variant.status = MediaVariant.Status.FAILED
+            variant.last_error = str(exc)
+            variant.save(update_fields=['status', 'last_error', 'updated_at'])
+            asset.status = MediaAsset.Status.FAILED
+            asset.last_error = str(exc)
+            asset.save(update_fields=['status', 'last_error', 'updated_at'])
             VARIANT_FAILURES.labels(format=fmt, profile=profile_name).inc()
             raise
 
