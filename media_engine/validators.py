@@ -1,7 +1,9 @@
 import io
+from pathlib import Path
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from PIL import Image
+from .audio_ops import AUDIO_EXTENSIONS, AUDIO_MIME_BY_EXTENSION, probe_audio_bytes
 try:
     import pillow_avif  # noqa: F401
 except Exception:
@@ -46,3 +48,25 @@ def inspect_upload(uploaded_file):
     except Exception as exc:
         raise ValidationError('Invalid or corrupted image.') from exc
     return raw, fmt, MIME_BY_FORMAT[fmt], width, height
+
+
+def inspect_audio_upload(uploaded_file, *, profile=None):
+    profile = profile or {}
+    max_bytes = getattr(settings, 'MEDIA_ENGINE_MAX_AUDIO_UPLOAD_BYTES', 20 * 1024 * 1024)
+    if uploaded_file.size > max_bytes:
+        raise ValidationError(f'Audio exceeds maximum upload size of {max_bytes} bytes.')
+
+    extension = Path(getattr(uploaded_file, 'name', '') or '').suffix.lower().lstrip('.')
+    if extension not in AUDIO_EXTENSIONS:
+        raise ValidationError('Unsupported audio format.')
+
+    uploaded_file.seek(0)
+    raw = uploaded_file.read()
+    uploaded_file.seek(0)
+    metadata = probe_audio_bytes(raw, suffix='.' + extension)
+
+    max_duration = int(profile.get('max_duration_seconds') or 600)
+    if metadata['duration_ms'] > max_duration * 1000:
+        raise ValidationError(f'Audio exceeds maximum duration of {max_duration} seconds.')
+
+    return raw, extension.upper(), AUDIO_MIME_BY_EXTENSION[extension], metadata

@@ -36,6 +36,16 @@ DEFAULT_PROFILES = {
         'quality': {'avif': 56, 'webp': 76, 'jpeg': 84},
         'target_bytes': {640: 120000, 960: 170000, 1280: 220000, 1600: 300000, 1920: 360000},
     },
+    'audio.invitation': {
+        'widths': [],
+        'formats': ['mp3'],
+        'fallback_format': 'mp3',
+        'kind': 'audio',
+        'bitrate_kbps': 96,
+        'sample_rate': 44100,
+        'channels': 2,
+        'max_duration_seconds': 600,
+    },
     'panorama.preview': {
         'widths': [1024],
         'formats': ['webp'],

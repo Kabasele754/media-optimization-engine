@@ -21,6 +21,16 @@ The public package is intentionally application-agnostic. It does not depend on 
 - CDN-ready derivative URLs;
 - Django template tags for responsive rendering.
 
+### Invitation audio
+
+- bounded audio upload validation with ffprobe;
+- SHA-256 deduplication and immutable originals;
+- a reusable `audio.invitation` profile;
+- browser-safe MP3 derivatives at a compact default bitrate;
+- Celery/inline processing through the same autonomous pipeline;
+- manifest delivery with duration, bitrate and optimized URL;
+- ffmpeg/ffprobe are the only system-level runtime requirements for audio processing.
+
 ### 360 panoramas
 
 - equirectangular panorama support;
@@ -108,6 +118,8 @@ For normal model fields, use the high-level media_image tag:
 ~~~
 
 MOE resolves the field's MediaBinding, generates a responsive picture with available AVIF/WebP sources, preserves the image's CSS classes, and falls back to the original field URL only when no processed binding is available.
+
+For invitation soundtracks, ingest the upload with `profile="audio.invitation"` and `media_kind="audio"`. The returned manifest exposes a compact MP3 fallback suitable for an HTML `<audio>` element.
 
 ### Logo or footer image
 

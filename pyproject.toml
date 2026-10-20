@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "media-optimization-engine"
-version = "1.5.0rc1"
-description = "Media Optimization Engineer for Django/Python: automatic model-field optimization, responsive picture/srcset rendering, AVIF/WebP derivatives, 360 media, autonomous nodes, and CDN-ready storage."
+version = "1.5.0rc2"
+description = "Media Optimization Engineer for Django/Python: image, invitation-audio and 360 media optimization with autonomous processing and CDN-ready storage."
 requires-python = ">=3.11"
 authors = [{ name = "Achille Kabasele", email = "pepexykabasele@gmail.com" }]
 maintainers = [{ name = "Achille Kabasele", email = "pepexykabasele@gmail.com" }]
 readme = "README.md"
-keywords = ["django", "media", "image-optimization", "avif", "webp", "panorama", "360", "marzipano", "cdn", "cloudflare-r2"]
+keywords = ["django", "media", "image-optimization", "audio", "mp3", "avif", "webp", "panorama", "360", "marzipano", "cdn", "cloudflare-r2"]
 license = "MIT"
 
 dependencies = [
