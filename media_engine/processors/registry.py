@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from .audio.standard import StandardAudioProcessor
 from .image.standard import StandardImageProcessor
 from .panorama.equirectangular import Panorama360Processor
 
-_PROCESSORS = [Panorama360Processor(), StandardImageProcessor()]
+_PROCESSORS = [Panorama360Processor(), StandardAudioProcessor(), StandardImageProcessor()]
 
 
 def get_processor(asset, profile_name: str):
