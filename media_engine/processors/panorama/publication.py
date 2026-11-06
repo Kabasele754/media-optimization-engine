@@ -29,7 +29,8 @@ def build_config(asset, profile):
     if cube:
         widths = cube_level_sizes(asset.width,
             min_size=int(getattr(settings, 'MEDIA_ENGINE_PANORAMA_CUBE_MIN_SIZE', 256)),
-            max_size=int(getattr(settings, 'MEDIA_ENGINE_PANORAMA_CUBE_MAX_SIZE', 4096)))
+            max_size=int(getattr(settings, 'MEDIA_ENGINE_PANORAMA_CUBE_MAX_SIZE', 4096)),
+            sizing=str(getattr(settings, 'MEDIA_ENGINE_PANORAMA_CUBE_SIZING', 'pi')).lower())
         formats = [str(getattr(settings, 'MEDIA_ENGINE_PANORAMA_CUBE_FORMAT', 'webp')).lower()]
         quality = {formats[0]: int(getattr(settings, 'MEDIA_ENGINE_PANORAMA_CUBE_QUALITY', 72))}
     else:

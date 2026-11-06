@@ -336,6 +336,19 @@ class PanoramaConfigurationTests(SimpleTestCase):
             with self.assertRaises(ValueError):
                 cube_level_sizes(8192, min_size=low, max_size=high)
 
+    def test_cube_levels_keep_source_detail(self):
+        # Common cameras: 5.7K and 6.7K now reach 2048 px faces, 11K reaches 4096.
+        self.assertEqual(cube_level_sizes(5760), [512, 1024, 2048])
+        self.assertEqual(cube_level_sizes(6720), [512, 1024, 2048])
+        self.assertEqual(cube_level_sizes(8192), [512, 1024, 2048])
+        self.assertEqual(cube_level_sizes(11000), [512, 1024, 2048, 4096])
+        self.assertEqual(cube_level_sizes(3840), [512, 1024])
+        self.assertEqual(cube_level_sizes(20000), [512, 1024, 2048, 4096])  # capped by max_size
+        self.assertEqual(cube_level_sizes(800), [512])
+        # The historical estimate stays available.
+        self.assertEqual(cube_level_sizes(5760, sizing='quarter'), [512, 1024])
+        self.assertEqual(cube_level_sizes(11000, sizing='quarter'), [512, 1024, 2048])
+
     def test_banded_projection_is_deterministic(self):
         image = Image.fromarray(np.random.default_rng(42).integers(0, 256, (32, 64, 3), dtype=np.uint8))
         first = dict(iter_cubemap_faces(image, 16, rows_per_chunk=1))
