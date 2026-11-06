@@ -367,3 +367,42 @@ class PanoramaConfigurationTests(SimpleTestCase):
             enqueue_asset('asset-id', profile='panorama.marzipano')
         self.assertEqual(enqueue.call_args.kwargs['queue'], 'image_critical')
         self.assertEqual(enqueue.call_args.kwargs['args'][0], 'asset-id')
+
+
+@override_settings(MEDIA_ENGINE_PIPELINE_VERSION=7, MEDIA_ENGINE_PANORAMA_CUBE_MIN_SIZE=64,
+    MEDIA_ENGINE_PANORAMA_CUBE_MAX_SIZE=128, MEDIA_ENGINE_PANORAMA_TILE_SIZE=64,
+    MEDIA_ENGINE_PANORAMA_CUBE_FORMAT='webp', MEDIA_ENGINE_PANORAMA_GENERATE_CUBEMAP=False)
+class CubeProfileIngestTests(TestCase):
+    """Hosts ingest panoramas with the cube profile names the processor supports."""
+
+    def setUp(self):
+        self.root = TemporaryDirectory()
+        self.addCleanup(self.root.cleanup)
+        self.override = override_settings(MEDIA_ROOT=self.root.name)
+        self.override.enable()
+        self.addCleanup(self.override.disable)
+        cache.clear()
+
+    def _upload(self, seed):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        data = np.zeros((256, 512, 3), dtype=np.uint8)
+        data[..., 0] = (np.arange(512, dtype=np.uint16)[None, :] + seed) % 256
+        output = io.BytesIO()
+        Image.fromarray(data).save(output, 'PNG')
+        return SimpleUploadedFile(f'pano-{seed}.png', output.getvalue(), content_type='image/png')
+
+    def test_cube_profiles_are_known(self):
+        from media_engine.profiles import get_profile
+        for name in ('panorama.marzipano', 'panorama.cube'):
+            self.assertEqual(get_profile(name)['projection'], 'equirectangular')
+
+    def test_ingest_and_build_with_the_marzipano_profile(self):
+        from media_engine.services import generate_all_variants, ingest_uploaded_file
+        for seed, profile in ((1, 'panorama.marzipano'), (2, 'panorama.cube')):
+            asset, created = ingest_uploaded_file(self._upload(seed), owner_ref='tours.scene360:1:image_360_original',
+                profile=profile, media_kind='panorama', projection='equirectangular', enqueue=False)
+            self.assertTrue(created)
+            generate_all_variants(asset, profile_name=profile)
+            manifest = build_manifest(asset, profile, compact=True)
+            self.assertEqual(manifest['layout'], 'cube-multires')
+            self.assertEqual([level['size'] for level in manifest['levels']], [64, 128])

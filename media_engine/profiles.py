@@ -64,6 +64,31 @@ DEFAULT_PROFILES = {
         'tile_size': 512,
         'projection': 'equirectangular',
     },
+    # Cube pyramids (Marzipano and generic cube viewers). Geometry, format and quality
+    # come from the MEDIA_ENGINE_PANORAMA_CUBE_* settings (see publication.build_config);
+    # the entries exist so that ingest_uploaded_file(profile=...) accepts these names.
+    'panorama.marzipano': {
+        'widths': [],
+        'formats': ['webp'],
+        'fallback_format': 'webp',
+        'fit': 'contain',
+        'quality': {'webp': 72},
+        'target_bytes': {},
+        'tile_size': 512,
+        'projection': 'equirectangular',
+        'layout': 'cube-multires',
+    },
+    'panorama.cube': {
+        'widths': [],
+        'formats': ['webp'],
+        'fallback_format': 'webp',
+        'fit': 'contain',
+        'quality': {'webp': 72},
+        'target_bytes': {},
+        'tile_size': 512,
+        'projection': 'equirectangular',
+        'layout': 'cube-multires',
+    },
 }
 
 
