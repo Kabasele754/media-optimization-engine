@@ -41,12 +41,29 @@ def _largest_power_of_two_lte(value: int, *, minimum: int = 512, maximum: int = 
     return max(power, minimum)
 
 
-def cube_level_sizes(original_width: int, *, min_size: int = 512, max_size: int = 4096) -> list[int]:
+def cube_face_estimate(original_width: int, sizing: str = 'pi') -> float:
+    """Face size that keeps the source's angular resolution.
+
+    'pi' (default): width / π — at the centre of a face, one face pixel spans the same
+    angle as one source pixel (the usual rule for cube panoramas; krpano, Marzipano tools).
+    'quarter': width / 4 — the historical estimate, about 21 % below the source detail.
+    """
+    if sizing == 'quarter':
+        return original_width / 4
+    return original_width / math.pi
+
+
+def cube_level_sizes(original_width: int, *, min_size: int = 512, max_size: int = 4096, sizing: str = 'pi') -> list[int]:
     if any(v < 16 or v & (v - 1) for v in (min_size, max_size)) or max_size < min_size:
         raise ValueError('Cubemap bounds must be ordered powers of two >= 16')
-    # A common equirectangular panorama has width ~= 4 * cubemap face width.
-    estimated = max(min_size, int(original_width / 4))
-    top = _largest_power_of_two_lte(estimated, minimum=min_size, maximum=max_size)
+    estimated = max(min_size, cube_face_estimate(original_width, sizing))
+    if sizing == 'quarter':
+        top = _largest_power_of_two_lte(estimated, minimum=min_size, maximum=max_size)
+    else:
+        # Nearest power of two, rounding up from 75 % of the next one: a 5.7K camera
+        # (≈1830 px) gets 2048 px faces instead of 1024 and keeps its detail.
+        lower = _largest_power_of_two_lte(estimated, minimum=min_size, maximum=max_size)
+        top = min(max_size, lower * 2) if estimated >= lower * 2 * 0.75 else lower
     sizes: list[int] = []
     current = min_size
     while current <= top:
