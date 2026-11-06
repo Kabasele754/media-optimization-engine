@@ -8,6 +8,7 @@
 - Optional staged Celery preview/tile queues, bounded metrics and read-only diagnostics.
 - See docs/PANORAMA_PERFORMANCE.md for rollout and compatibility constraints.
 - Cube level sizing keeps the source detail: largest face ≈ width / π (nearest power of two, rounding up from 75 %), so 5.7K–6.7K cameras reach 2048 px faces and 11K reaches 4096. `MEDIA_ENGINE_PANORAMA_CUBE_SIZING = 'quarter'` restores the historical width / 4 estimate. Existing builds are unchanged until they are regenerated (new fingerprint).
+- Declare the `panorama.marzipano` and `panorama.cube` profiles: the processor and manifests supported them, but `ingest_uploaded_file(profile='panorama.marzipano')` raised `KeyError: Unknown media profile`, so hosts using that name never ingested a panorama.
 
 ## 1.4.4
 - Expanded media FileField path columns to 500 characters so Marzipano cubemap tile paths persist safely on PostgreSQL.
